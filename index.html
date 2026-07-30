@@ -1,0 +1,1184 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>صيدلية ازهار فاهم | قارئ باركود ونقطة بيع</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<style>
+ :root{
+ --bg:#F5FAF8;
+ --card:#FFFFFF;
+ --ink:#132420;
+ --muted:#5C7570;
+ --primary:#0F6B5C;
+ --primary-dark:#0B4F44;
+ --accent:#E08A2C;
+ --danger:#C24A3A;
+ --line:#DCEAE5;
+ --line-strong:#B9D3CB;
+ }
+ *{box-sizing:border-box;}
+ body{
+ margin:0;
+ background:var(--bg);
+ color:var(--ink);
+ font-family:'Tajawal',sans-serif;
+ min-height:100vh;
+ }
+ h1,h2,h3,.display{font-family:'Cairo',sans-serif;}
+ .num{font-variant-numeric:tabular-nums;}
+
+ /* Header */
+ header{
+ background:linear-gradient(135deg,var(--primary-dark),var(--primary));
+ color:#fff;
+ padding:18px 22px;
+ display:flex;
+ align-items:center;
+ justify-content:space-between;
+ box-shadow:0 4px 14px rgba(15,107,92,.25);
+ }
+ header .brand{display:flex;align-items:center;gap:10px;}
+ header .brand .mark{
+ width:38px;height:38px;border-radius:10px;
+ background:rgba(255,255,255,.15);
+ display:flex;align-items:center;justify-content:center;
+ font-size:20px;
+ }
+ header h1{font-size:19px;margin:0;font-weight:800;}
+ header p{margin:0;font-size:12px;opacity:.85;}
+
+ nav{
+ display:flex;
+ background:var(--card);
+ border-bottom:1px solid var(--line);
+ padding:0 14px;
+ gap:4px;
+ overflow-x:auto;
+ }
+ nav button{
+ border:none;background:transparent;
+ padding:14px 16px;font-size:14.5px;font-weight:700;
+ color:var(--muted);cursor:pointer;
+ border-bottom:3px solid transparent;
+ font-family:'Cairo',sans-serif;
+ white-space:nowrap;
+ }
+ nav button.active{color:var(--primary-dark);border-bottom-color:var(--accent);}
+
+ main{padding:18px;max-width:1100px;margin:0 auto;}
+ .card{
+ background:var(--card);
+ border:1px solid var(--line);
+ border-radius:14px;
+ padding:16px;
+ margin-bottom:16px;
+ }
+ .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+ .grow{flex:1;min-width:160px;}
+
+ input,select{
+ width:100%;
+ padding:10px 12px;
+ border:1.5px solid var(--line-strong);
+ border-radius:9px;
+ font-size:14.5px;
+ font-family:'Tajawal',sans-serif;
+ background:#fff;
+ color:var(--ink);
+ }
+ input:focus,select:focus{outline:none;border-color:var(--primary);}
+ label{font-size:12.5px;color:var(--muted);font-weight:700;display:block;margin-bottom:5px;}
+
+ button.btn{
+ border:none;border-radius:9px;
+ padding:10px 16px;font-weight:700;font-size:14px;
+ cursor:pointer;font-family:'Cairo',sans-serif;
+ display:inline-flex;align-items:center;gap:6px;
+ }
+ .btn-primary{background:var(--primary);color:#fff;}
+ .btn-primary:hover{background:var(--primary-dark);}
+ .btn-accent{background:var(--accent);color:#fff;}
+ .btn-outline{background:#fff;border:1.5px solid var(--line-strong);color:var(--ink);}
+ .btn-danger{background:#fff;border:1.5px solid var(--danger);color:var(--danger);}
+ .btn-sm{padding:6px 10px;font-size:12.5px;border-radius:7px;}
+ .btn-block{width:100%;justify-content:center;}
+
+ table{width:100%;border-collapse:collapse;font-size:13.5px;}
+ th{
+ text-align:right;color:var(--muted);font-size:12px;
+ padding:8px 10px;border-bottom:2px solid var(--line);
+ font-family:'Cairo',sans-serif;
+ }
+ td{padding:10px;border-bottom:1px solid var(--line);vertical-align:middle;}
+ tr:last-child td{border-bottom:none;}
+
+ .badge{
+ display:inline-block;padding:3px 9px;border-radius:20px;
+ font-size:11.5px;font-weight:700;
+ }
+ .badge-ok{background:#E4F3EE;color:var(--primary-dark);}
+ .badge-low{background:#FCEFDC;color:#9A5B12;}
+ .badge-out{background:#FBE7E3;color:var(--danger);}
+
+ /* POS layout */
+ .pos-wrap{display:flex;gap:16px;flex-wrap:wrap;}
+ .pos-left{flex:2;min-width:300px;}
+ .pos-right{flex:1;min-width:280px;}
+
+ .scan-panel{
+ background:linear-gradient(160deg,#0F6B5C,#0B4F44);
+ border-radius:16px;
+ padding:18px;
+ color:#fff;
+ text-align:center;
+ margin-bottom:14px;
+ position:relative;
+ overflow:hidden;
+ }
+ .scan-panel h3{margin:0 0 4px;font-size:15px;}
+ .scan-panel p{margin:0 0 12px;font-size:12px;opacity:.85;}
+ #manualBarcode{
+ box-shadow:0 0 0 3px rgba(224,138,44,.25);
+ }
+
+ .cart-item{
+ display:flex;align-items:center;gap:8px;
+ padding:9px 0;border-bottom:1px solid var(--line);
+ }
+ .cart-item .name{flex:1;font-size:13.5px;font-weight:700;}
+ .qty-ctrl{display:flex;align-items:center;gap:6px;}
+ .qty-ctrl button{
+ width:26px;height:26px;border-radius:6px;border:1.5px solid var(--line-strong);
+ background:#fff;cursor:pointer;font-weight:700;
+ }
+ .total-box{
+ background:var(--bg);border:1.5px dashed var(--line-strong);
+ border-radius:10px;padding:12px;margin-top:10px;
+ }
+ .total-box .line{display:flex;justify-content:space-between;font-size:13.5px;margin-bottom:4px;}
+ .total-box .grand{font-size:19px;font-weight:800;color:var(--primary-dark);font-family:'Cairo',sans-serif;}
+
+ .empty{
+ text-align:center;color:var(--muted);padding:26px 10px;font-size:13.5px;
+ }
+ .modal-bg{
+ position:fixed;inset:0;background:rgba(19,36,32,.45);
+ display:none;align-items:center;justify-content:center;z-index:50;padding:14px;
+ }
+ .modal-bg.active{display:flex;}
+ .modal{
+ background:#fff;border-radius:14px;padding:20px;width:100%;max-width:420px;
+ max-height:90vh;overflow-y:auto;
+ }
+ .modal h3{margin-top:0;}
+ .toast{
+ position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
+ background:var(--ink);color:#fff;padding:10px 18px;border-radius:9px;
+ font-size:13.5px;z-index:100;opacity:0;transition:opacity .25s;
+ pointer-events:none;
+ }
+ .toast.show{opacity:1;}
+ .field{margin-bottom:12px;}
+ .hint{font-size:11.5px;color:var(--muted);margin-top:8px;}
+ .stat-cards{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;}
+ .stat{
+ flex:1;min-width:130px;background:#fff;border:1px solid var(--line);
+ border-radius:12px;padding:14px;
+ }
+ .stat .v{font-size:22px;font-weight:800;color:var(--primary-dark);font-family:'Cairo',sans-serif;}
+ .stat .l{font-size:12px;color:var(--muted);margin-top:2px;}
+</style>
+</head>
+<body>
+
+<header>
+ <div class="brand">
+    <div class="mark">ص</div>
+ <div>
+ <h1>صيدلية ازهار فاهم</h1>
+ <p>قارئ باركود وإدارة مبيعات</p>
+ </div>
+ </div>
+ <div id="branchBadge" style="font-size:12px;background:rgba(255,255,255,.15);padding:6px 12px;border-radius:20px;font-weight:700;"></div>
+</header>
+
+<nav>
+ <button class="tab-btn active" data-tab="pos">نقطة البيع</button>
+ <button class="tab-btn" data-tab="products">المنتجات</button>
+ <button class="tab-btn" data-tab="expiry">الصلاحية</button>
+ <button class="tab-btn" data-tab="reports">التقارير</button>
+ <button class="tab-btn" data-tab="owner" style="margin-right:auto;">لوحة المالك</button>
+</nav>
+
+<main>
+
+ <!-- POS TAB -->
+ <section id="tab-pos">
+ <div class="pos-wrap">
+ <div class="pos-left">
+ <div class="scan-panel">
+ <h3>قارئ الباركود</h3>
+ <p>اضغط الزر ثم امسح المنتج بالجهاز — يُضاف تلقائيًا كعملية بيع</p>
+ <button class="btn btn-accent" id="btnActivateScan" style="margin-bottom:10px;">تفعيل القراءة</button>
+ <div class="row" style="justify-content:center;margin-bottom:4px;">
+ <input id="manualBarcode" placeholder="جاهز لاستقبال المسح..." style="max-width:320px;text-align:center;font-weight:700;" autocomplete="off">
+ </div>
+ <div id="camMsg" style="font-size:11.5px;opacity:.85;margin-top:6px;">يمكنك أيضًا كتابة الباركود يدويًا ثم الضغط Enter</div>
+ </div>
+
+ <div class="card">
+ <div class="row" style="margin-bottom:10px;">
+ <input id="posSearch" class="grow" placeholder="بحث عن منتج بالاسم أو الباركود">
+ </div>
+ <div id="posProductList"></div>
+ </div>
+ </div>
+
+ <div class="pos-right">
+ <div class="card">
+ <h3 style="margin-top:0;">السلة</h3>
+ <div id="cartList"><div class="empty">السلة فارغة — امسح منتجًا للبدء</div></div>
+ <div class="total-box">
+ <div class="line"><span>عدد الأصناف</span><span id="cartCount" class="num">0</span></div>
+ <div class="line grand"><span>الإجمالي</span><span id="cartTotal" class="num">0</span></div>
+ </div>
+ <button class="btn btn-primary btn-block" style="margin-top:12px;" id="btnCheckout">إتمام البيع</button>
+ <button class="btn btn-outline btn-block" style="margin-top:8px;" id="btnClearCart">تفريغ السلة</button>
+ </div>
+ </div>
+ </div>
+ </section>
+
+ <!-- PRODUCTS TAB -->
+ <section id="tab-products" style="display:none;">
+ <div class="card">
+ <div class="row" style="justify-content:space-between;">
+ <input id="productSearch" class="grow" placeholder="بحث في المنتجات">
+ <button class="btn btn-primary" id="btnAddProduct">+ إضافة منتج</button>
+ </div>
+ <div id="productsTotalCount" style="font-size:12.5px;color:var(--muted);margin-top:10px;font-weight:700;">إجمالي المنتجات: 0</div>
+ </div>
+ <div class="card" style="padding:0;overflow-x:auto;">
+ <table>
+ <thead>
+ <tr>
+ <th>#</th><th>الاسم</th><th>الباركود</th><th>السعر</th><th>الكمية</th><th>الانتهاء</th><th>الحالة</th><th></th>
+ </tr>
+ </thead>
+ <tbody id="productsTable"></tbody>
+ </table>
+ <div id="productsEmpty" class="empty" style="display:none;">لا توجد منتجات بعد. اضغط "إضافة منتج" للبدء.</div>
+ </div>
+ </section>
+
+ <!-- EXPIRY TAB -->
+ <section id="tab-expiry" style="display:none;">
+ <div class="stat-cards">
+ <div class="stat"><div class="v num" id="expStatExpired">0</div><div class="l">منتهية الصلاحية</div></div>
+ <div class="stat"><div class="v num" id="expStatSoon">0</div><div class="l">قرب الانتهاء (30 يوم)</div></div>
+ </div>
+ <div class="card" style="padding:0;overflow-x:auto;">
+ <table>
+ <thead>
+ <tr>
+ <th>#</th><th>الاسم</th><th>الكمية</th><th>تاريخ الانتهاء</th><th>الحالة</th><th></th>
+ </tr>
+ </thead>
+ <tbody id="expiryTable"></tbody>
+ </table>
+ <div id="expiryEmpty" class="empty" style="display:none;">لا توجد منتجات منتهية أو قريبة من الانتهاء</div>
+ </div>
+ </section>
+
+ <!-- REPORTS TAB -->
+ <section id="tab-reports" style="display:none;">
+ <div class="stat-cards">
+ <div class="stat"><div class="v num" id="statToday">0</div><div class="l">مبيعات اليوم</div></div>
+ <div class="stat"><div class="v num" id="statCount">0</div><div class="l">عدد عمليات البيع</div></div>
+ <div class="stat"><div class="v num" id="statAll">0</div><div class="l">إجمالي المبيعات الكلي</div></div>
+ </div>
+ <div class="card" style="padding:0;overflow-x:auto;">
+ <table>
+ <thead><tr><th>التاريخ</th><th>الأصناف</th><th>الإجمالي</th><th></th></tr></thead>
+ <tbody id="salesTable"></tbody>
+ </table>
+ <div id="salesEmpty" class="empty" style="display:none;">لا توجد مبيعات مسجلة بعد.</div>
+ </div>
+ </section>
+
+ <!-- OWNER TAB -->
+ <section id="tab-owner" style="display:none;">
+
+   <div class="card" id="ownerLockCard">
+     <h3 style="margin-top:0;" id="ownerLockTitle">دخول المالك</h3>
+     <p id="ownerLockDesc" style="font-size:13px;color:var(--muted);margin-top:-6px;">أدخل رمز المالك للوصول إلى لوحة التحكم الكاملة</p>
+     <div class="field"><input id="ownerPinInput" type="password" inputmode="numeric" placeholder="رمز المالك" style="text-align:center;letter-spacing:4px;font-weight:700;max-width:220px;"></div>
+     <div class="field" id="ownerPinConfirmWrap" style="display:none;"><input id="ownerPinConfirm" type="password" inputmode="numeric" placeholder="تأكيد الرمز" style="text-align:center;letter-spacing:4px;font-weight:700;max-width:220px;"></div>
+     <button class="btn btn-primary" id="btnOwnerUnlock">دخول</button>
+     <div id="ownerLockMsg" style="font-size:12.5px;color:var(--danger);margin-top:8px;"></div>
+   </div>
+
+   <div id="ownerDashboard" style="display:none;">
+
+     <div class="card">
+       <h3 style="margin-top:0;">الفرع النشط الآن</h3>
+       <p style="font-size:13px;color:var(--muted);margin-top:-6px;">هذا هو الفرع الذي تعمل عليه شاشات نقطة البيع والمنتجات والتقارير حاليًا</p>
+       <div class="row">
+         <button class="btn btn-outline grow" id="btnBranch1">الفرع الأول</button>
+         <button class="btn btn-outline grow" id="btnBranch2">الفرع الثاني</button>
+       </div>
+     </div>
+
+     <div class="card">
+       <h3 style="margin-top:0;">نظرة عامة على الفرعين</h3>
+       <div class="stat-cards">
+         <div class="stat"><div class="v num" id="ownerB1Today">0</div><div class="l">مبيعات اليوم — الفرع الأول</div></div>
+         <div class="stat"><div class="v num" id="ownerB2Today">0</div><div class="l">مبيعات اليوم — الفرع الثاني</div></div>
+         <div class="stat"><div class="v num" id="ownerAllTotal">0</div><div class="l">إجمالي مبيعات الفرعين</div></div>
+       </div>
+     </div>
+
+     <div class="card">
+       <h3 style="margin-top:0;">البحث وحذف/تعديل عملية بيع</h3>
+       <p style="font-size:13px;color:var(--muted);margin-top:-6px;">أداة بحث سريعة (نفس الصلاحية متوفرة لأي مستخدم من تبويب التقارير مباشرة)</p>
+       <input id="ownerSaleSearch" placeholder="ابحث باسم المنتج أو التاريخ" style="margin-bottom:10px;">
+       <div id="ownerSaleResults"></div>
+     </div>
+
+     <div class="card">
+       <h3 style="margin-top:0;">سجل العمليات</h3>
+       <p style="font-size:13px;color:var(--muted);margin-top:-6px;">آخر 100 عملية حذف أو تعديل قام بها المالك</p>
+       <div id="ownerActivityLog"></div>
+     </div>
+
+     <div class="card">
+       <h3 style="margin-top:0;">النسخ الاحتياطي</h3>
+       <p style="font-size:12.5px;color:var(--danger);margin-top:-6px;">تنبيه مهم: البيانات محفوظة داخل هذا المتصفح فقط. إذا مسحت بيانات التصفح (Clear browsing data) أو حذفت التطبيق، تنمسح البيانات نهائيًا ولا يوجد أي طريقة لاستعادتها إلا من نسخة احتياطية صدّرتها مسبقًا. خذ نسخة احتياطية بشكل دوري (أسبوعيًا مثلاً) واحفظها بمكان آمن خارج المتصفح.</p>
+       <div class="row">
+         <button class="btn btn-outline grow" id="btnExportBackup">تصدير نسخة احتياطية</button>
+         <button class="btn btn-outline grow" id="btnImportBackup">استيراد نسخة احتياطية</button>
+         <input type="file" id="importFileInput" accept="application/json" style="display:none;">
+       </div>
+     </div>
+
+     <div class="card">
+       <h3 style="margin-top:0;">تغيير رمز المالك</h3>
+       <div class="row">
+         <input id="newPinField" type="password" inputmode="numeric" placeholder="رمز جديد" class="grow" style="max-width:180px;">
+         <input id="newPinConfirmField" type="password" inputmode="numeric" placeholder="تأكيد الرمز الجديد" class="grow" style="max-width:180px;">
+         <button class="btn btn-primary" id="btnChangePin">حفظ الرمز</button>
+       </div>
+     </div>
+
+     <div class="card">
+       <h3 style="margin-top:0;color:var(--danger);">منطقة الخطر</h3>
+       <p style="font-size:13px;color:var(--muted);margin-top:-6px;">مسح كل سجلات مبيعات الفرع النشط حاليًا نهائيًا، مع إبقاء المنتجات وكمياتها كما هي</p>
+       <button class="btn btn-danger" id="btnResetBranch">تصفير مبيعات الفرع النشط</button>
+     </div>
+
+     <button class="btn btn-outline btn-block" id="btnOwnerLock">تسجيل خروج المالك</button>
+   </div>
+
+ </section>
+
+</main>
+
+<!-- Product Modal -->
+<div class="modal-bg" id="productModalBg">
+ <div class="modal">
+ <h3 id="modalTitle">إضافة منتج</h3>
+ <input type="hidden" id="prodId">
+ <div class="field"><label>اسم المنتج</label><input id="prodName" placeholder="مثال: باراسيتامول 500 ملغ"></div>
+ <div class="field">
+ <label>الباركود</label>
+ <div class="row" style="gap:8px;">
+ <input id="prodBarcode" class="grow" placeholder="رقم الباركود">
+ <button type="button" class="btn btn-accent btn-sm" id="btnScanForProduct">مسح بالجهاز</button>
+ </div>
+ <div id="prodScanMsg" style="font-size:11.5px;color:var(--muted);margin-top:5px;"></div>
+ </div>
+ <div class="row">
+ <div class="field grow"><label>السعر</label><input id="prodPrice" type="number" min="0" step="0.01" placeholder="0"></div>
+ <div class="field grow"><label>الكمية بالمخزن</label><input id="prodQty" type="number" min="0" step="1" placeholder="0"></div>
+ </div>
+ <div class="field"><label>تاريخ انتهاء الصلاحية (اختياري)</label><input id="prodExpiry" type="date"></div>
+ <div class="row" style="margin-top:6px;">
+ <button class="btn btn-outline grow" onclick="closeProductModal()">إلغاء</button>
+ <button class="btn btn-primary grow" onclick="saveProduct()">حفظ</button>
+ </div>
+ </div>
+</div>
+
+<div class="modal-bg" id="editSaleModalBg">
+ <div class="modal">
+ <h3>تعديل عملية بيع</h3>
+ <p style="font-size:12.5px;color:var(--muted);margin-top:-8px;">غيّر الكمية لأي صنف، أو خلها صفر لحذفه من العملية. سيتم تعديل المخزون تلقائيًا حسب الفرق.</p>
+ <div id="editSaleItemsWrap"></div>
+ <div class="row" style="margin-top:10px;">
+ <button class="btn btn-outline grow" onclick="closeEditSaleModal()">إلغاء</button>
+ <button class="btn btn-primary grow" onclick="saveEditedSale()">حفظ التعديل</button>
+ </div>
+ </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ---------------- Firebase (مزامنة حقيقية بين الأجهزة) ---------------- */
+const firebaseConfig = {
+  apiKey: "AIzaSyD3h2Jt4yR09Nbxm0-mDsQ-Xf-Lg_uZTc8",
+  authDomain: "pharmacy-7c572.firebaseapp.com",
+  projectId: "pharmacy-7c572",
+  storageBucket: "pharmacy-7c572.firebasestorage.app",
+  messagingSenderId: "1068571959592",
+  appId: "1:1068571959592:web:a0500b48f829cfc125f01d"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+function branchDocRef(branch){
+  return db.collection('branches').doc(branch);
+}
+
+/* ---------------- State & Storage ---------------- */
+let products = [];
+let sales = [];
+let activityLog = [];
+let cart = []; // {id, name, price, qty}
+let editingProductId = null;
+let quaggaActive = false;
+let ACTIVE_BRANCH = localStorage.getItem('pharmacy:activeBranch') || 'branch1';
+const BRANCH_LABEL = { branch1:'الفرع الأول', branch2:'الفرع الثاني' };
+let unsubscribeBranch = null;
+let syncStatusOK = false;
+
+function updateBranchBadge(){
+  document.getElementById('branchBadge').textContent = BRANCH_LABEL[ACTIVE_BRANCH] + (syncStatusOK ? ' • متصل' : ' • غير متصل');
+}
+
+function loadData(){
+  if(unsubscribeBranch) unsubscribeBranch();
+  unsubscribeBranch = branchDocRef(ACTIVE_BRANCH).onSnapshot((doc)=>{
+    syncStatusOK = true;
+    const data = doc.data() || {};
+    products = data.products || [];
+    sales = data.sales || [];
+    activityLog = data.activityLog || [];
+    updateBranchBadge();
+    renderProducts();
+    renderPosList();
+    renderReports();
+    if(document.getElementById('tab-expiry').style.display !== 'none'){
+      renderExpiryTab();
+    }
+    if(document.getElementById('tab-owner').style.display !== 'none'){
+      renderOwnerOverview();
+      renderOwnerSaleSearch();
+      renderOwnerActivityLog();
+    }
+  }, (err)=>{
+    console.error(err);
+    syncStatusOK = false;
+    updateBranchBadge();
+    showToast('تعذر الاتصال بقاعدة البيانات — تحقق من الإنترنت');
+  });
+}
+
+async function saveProducts(){
+  try{ await branchDocRef(ACTIVE_BRANCH).set({products, sales, activityLog}, {merge:true}); }
+  catch(e){ console.error(e); showToast('تعذر حفظ بيانات المنتجات — تحقق من الإنترنت'); }
+}
+async function saveSales(){
+  try{ await branchDocRef(ACTIVE_BRANCH).set({products, sales, activityLog}, {merge:true}); }
+  catch(e){ console.error(e); showToast('تعذر حفظ بيانات المبيعات — تحقق من الإنترنت'); }
+}
+async function logActivity(description){
+  activityLog = activityLog || [];
+  activityLog.unshift({id: uid(), description, date: new Date().toISOString()});
+  activityLog = activityLog.slice(0, 100);
+  try{ await branchDocRef(ACTIVE_BRANCH).set({activityLog}, {merge:true}); }catch(e){ console.error(e); }
+}
+
+async function setActiveBranch(branch){
+  ACTIVE_BRANCH = branch;
+  localStorage.setItem('pharmacy:activeBranch', branch);
+  cart = [];
+  loadData();
+  renderOwnerBranchButtons();
+  showToast('تم التحويل إلى ' + BRANCH_LABEL[branch]);
+}
+
+function showToast(msg){
+ const t = document.getElementById('toast');
+ t.textContent = msg;
+ t.classList.add('show');
+ setTimeout(()=>t.classList.remove('show'), 2200);
+}
+function uid(){ return 'p_' + Date.now() + '_' + Math.random().toString(36).slice(2,7); }
+
+/* ---------------- Tabs ---------------- */
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+ btn.addEventListener('click', ()=>{
+ document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+ btn.classList.add('active');
+ ['pos','products','expiry','reports','owner'].forEach(name=>{
+ document.getElementById('tab-'+name).style.display = (name===btn.dataset.tab) ? 'block' : 'none';
+ });
+ if(btn.dataset.tab==='reports') renderReports();
+ if(btn.dataset.tab==='pos') focusBarcodeInput();
+ if(btn.dataset.tab==='owner') showOwnerLockScreen();
+ if(btn.dataset.tab==='expiry') renderExpiryTab();
+ });
+});
+
+/* ---------------- Products ---------------- */
+function openAddProduct(){
+ editingProductId = null;
+ document.getElementById('modalTitle').textContent = 'إضافة منتج';
+ document.getElementById('prodName').value='';
+ document.getElementById('prodBarcode').value='';
+ document.getElementById('prodPrice').value='';
+ document.getElementById('prodQty').value='';
+ document.getElementById('prodExpiry').value='';
+ document.getElementById('prodScanMsg').textContent='';
+ document.getElementById('productModalBg').classList.add('active');
+}
+function openEditProduct(id){
+ const prod = products.find(x=>x.id===id);
+ if(!prod) return;
+ editingProductId = id;
+ document.getElementById('modalTitle').textContent = 'تعديل منتج';
+ document.getElementById('prodName').value = prod.name;
+ document.getElementById('prodBarcode').value = prod.barcode;
+ document.getElementById('prodPrice').value = prod.price;
+ document.getElementById('prodQty').value = prod.qty;
+ document.getElementById('prodExpiry').value = prod.expiry || '';
+ document.getElementById('prodScanMsg').textContent='';
+ document.getElementById('productModalBg').classList.add('active');
+}
+function closeProductModal(){
+ document.getElementById('productModalBg').classList.remove('active');
+}
+async function saveProduct(){
+ const name = document.getElementById('prodName').value.trim();
+ const barcode = document.getElementById('prodBarcode').value.trim();
+ const price = parseFloat(document.getElementById('prodPrice').value) || 0;
+ const qty = parseInt(document.getElementById('prodQty').value) || 0;
+ const expiry = document.getElementById('prodExpiry').value || '';
+ if(!name || !barcode){ showToast('الرجاء إدخال الاسم والباركود'); return; }
+
+ const dup = products.find(p=>p.barcode===barcode && p.id!==editingProductId);
+ if(dup){ showToast('هذا الباركود مستخدم لمنتج آخر'); return; }
+
+ if(editingProductId){
+ const prod = products.find(x=>x.id===editingProductId);
+ prod.name=name; prod.barcode=barcode; prod.price=price; prod.qty=qty; prod.expiry=expiry;
+ }else{
+ products.push({id:uid(), name, barcode, price, qty, expiry});
+ }
+ await saveProducts();
+ closeProductModal();
+ renderProducts();
+ renderPosList();
+ showToast('تم الحفظ بنجاح');
+}
+async function deleteProduct(id){
+ if(!confirm('هل تريد حذف هذا المنتج؟')) return;
+ products = products.filter(p=>p.id!==id);
+ await saveProducts();
+ renderProducts();
+ renderPosList();
+}
+function stockBadge(qty){
+ if(qty<=0) return '<span class="badge badge-out">نفدت الكمية</span>';
+ if(qty<=5) return '<span class="badge badge-low">كمية منخفضة</span>';
+ return '<span class="badge badge-ok">متوفر</span>';
+}
+function expiryBadge(expiry){
+ if(!expiry) return '';
+ const today = new Date(); today.setHours(0,0,0,0);
+ const expDate = new Date(expiry);
+ const diffDays = Math.round((expDate-today)/(1000*60*60*24));
+ if(diffDays < 0) return '<span class="badge badge-out">منتهي الصلاحية</span>';
+ if(diffDays <= 30) return '<span class="badge badge-low">قرب الانتهاء</span>';
+ return '<span class="badge badge-ok">صلاحية جيدة</span>';
+}
+/* ترتيب أبجدي: الأحرف الإنجليزية أولاً ثم العربية، كل مجموعة مرتبة أبجديًا */
+function isArabicChar(ch){ return /[\u0600-\u06FF]/.test(ch); }
+function sortProductsAlpha(list){
+ return [...list].sort((a,b)=>{
+   const aAr = isArabicChar(a.name.trim()[0]||'');
+   const bAr = isArabicChar(b.name.trim()[0]||'');
+   if(aAr !== bAr) return aAr ? 1 : -1; // الإنجليزي أولاً
+   return a.name.localeCompare(b.name, aAr ? 'ar' : 'en');
+ });
+}
+function renderProducts(){
+ const term = (document.getElementById('productSearch').value||'').trim().toLowerCase();
+ const filtered = products.filter(p=> p.name.toLowerCase().includes(term) || p.barcode.includes(term));
+ const list = sortProductsAlpha(filtered);
+ const tbody = document.getElementById('productsTable');
+ tbody.innerHTML = list.map((p,idx)=>`
+ <tr>
+ <td class="num">${idx+1}</td>
+ <td>${escapeHtml(p.name)}</td>
+ <td class="num">${escapeHtml(p.barcode)}</td>
+ <td class="num">${p.price.toLocaleString()} د.ع</td>
+ <td class="num">${p.qty}</td>
+ <td>${p.expiry ? new Date(p.expiry).toLocaleDateString('ar-IQ') : '—'}</td>
+ <td>${stockBadge(p.qty)} ${expiryBadge(p.expiry)}</td>
+ <td>
+ <button class="btn btn-outline btn-sm" onclick="openEditProduct('${p.id}')">تعديل</button>
+ <button class="btn btn-danger btn-sm" onclick="deleteProduct('${p.id}')">حذف</button>
+ </td>
+ </tr>
+ `).join('');
+ document.getElementById('productsEmpty').style.display = list.length? 'none':'block';
+ document.getElementById('productsTotalCount').textContent = 'إجمالي المنتجات: ' + products.length;
+}
+document.getElementById('btnAddProduct').addEventListener('click', openAddProduct);
+
+function renderExpiryTab(){
+ const today = new Date(); today.setHours(0,0,0,0);
+ const withExpiry = products
+   .filter(p=>p.expiry)
+   .map(p=>{
+     const expDate = new Date(p.expiry);
+     const diffDays = Math.round((expDate-today)/(1000*60*60*24));
+     return {...p, diffDays};
+   })
+   .filter(p=> p.diffDays <= 30) // منتهية أو قرب الانتهاء فقط
+   .sort((a,b)=> a.diffDays - b.diffDays); // الأقرب انتهاءً أولاً
+
+ const tbody = document.getElementById('expiryTable');
+ tbody.innerHTML = withExpiry.map((p,idx)=>`
+   <tr>
+     <td class="num">${idx+1}</td>
+     <td>${escapeHtml(p.name)}</td>
+     <td class="num">${p.qty}</td>
+     <td>${new Date(p.expiry).toLocaleDateString('ar-IQ')}</td>
+     <td>${expiryBadge(p.expiry)}</td>
+     <td><button class="btn btn-outline btn-sm" onclick="openEditProduct('${p.id}')">تعديل</button></td>
+   </tr>
+ `).join('');
+ document.getElementById('expiryEmpty').style.display = withExpiry.length ? 'none' : 'block';
+
+ const expiredCount = withExpiry.filter(p=>p.diffDays < 0).length;
+ const soonCount = withExpiry.filter(p=>p.diffDays >= 0).length;
+ document.getElementById('expStatExpired').textContent = expiredCount;
+ document.getElementById('expStatSoon').textContent = soonCount;
+}
+document.getElementById('productSearch').addEventListener('input', renderProducts);
+
+function escapeHtml(str){
+ return String(str).replace(/[&<>"']/g, s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
+}
+
+/* ---------------- POS ---------------- */
+function renderPosList(){
+ const term = (document.getElementById('posSearch').value||'').trim().toLowerCase();
+ const filtered = products.filter(p=> p.name.toLowerCase().includes(term) || p.barcode.includes(term));
+ const list = sortProductsAlpha(filtered).slice(0,30);
+ const wrap = document.getElementById('posProductList');
+ if(!products.length){
+ wrap.innerHTML = '<div class="empty">لا توجد منتجات — أضف منتجات من تبويب "المنتجات" أولاً</div>';
+ return;
+ }
+ wrap.innerHTML = list.map(p=>`
+ <div class="cart-item" style="cursor:pointer;" onclick="addToCart('${p.id}')">
+ <div class="name">${escapeHtml(p.name)}</div>
+ <div style="font-size:12px;color:var(--muted);">${p.qty} بالمخزن</div>
+ <div class="num" style="font-weight:700;">${p.price.toLocaleString()} د.ع</div>
+ </div>
+ `).join('') || '<div class="empty">لا توجد نتائج</div>';
+}
+document.getElementById('posSearch').addEventListener('input', renderPosList);
+
+function addToCart(productId){
+ const prod = products.find(p=>p.id===productId);
+ if(!prod){ showToast('المنتج غير موجود'); return; }
+ if(prod.qty<=0){ showToast('الكمية غير متوفرة في المخزن'); return; }
+ const existing = cart.find(c=>c.id===productId);
+ const inCart = existing? existing.qty : 0;
+ if(inCart+1 > prod.qty){ showToast('الكمية المتوفرة غير كافية'); return; }
+ if(existing){ existing.qty++; }
+ else{ cart.push({id:prod.id, name:prod.name, price:prod.price, qty:1}); }
+ renderCart();
+}
+function changeCartQty(id, delta){
+ const item = cart.find(c=>c.id===id);
+ if(!item) return;
+ const prod = products.find(p=>p.id===id);
+ const newQty = item.qty + delta;
+ if(newQty<=0){ cart = cart.filter(c=>c.id!==id); }
+ else if(prod && newQty > prod.qty){ showToast('تجاوزت الكمية المتوفرة'); return; }
+ else{ item.qty = newQty; }
+ renderCart();
+}
+function renderCart(){
+ const wrap = document.getElementById('cartList');
+ if(!cart.length){
+ wrap.innerHTML = '<div class="empty">السلة فارغة — امسح منتجًا للبدء</div>';
+ }else{
+ wrap.innerHTML = cart.map(c=>`
+ <div class="cart-item">
+ <div class="name">${escapeHtml(c.name)}</div>
+ <div class="qty-ctrl">
+ <button onclick="changeCartQty('${c.id}',-1)">−</button>
+ <span class="num">${c.qty}</span>
+ <button onclick="changeCartQty('${c.id}',1)">+</button>
+ </div>
+ <div class="num" style="min-width:70px;text-align:left;">${(c.price*c.qty).toLocaleString()} د.ع</div>
+ </div>
+ `).join('');
+ }
+ const count = cart.reduce((s,c)=>s+c.qty,0);
+ const total = cart.reduce((s,c)=>s+c.qty*c.price,0);
+ document.getElementById('cartCount').textContent = count;
+ document.getElementById('cartTotal').textContent = total.toLocaleString()+' د.ع';
+}
+document.getElementById('btnClearCart').addEventListener('click', ()=>{ cart=[]; renderCart(); });
+
+document.getElementById('btnCheckout').addEventListener('click', async ()=>{
+ if(!cart.length){ showToast('السلة فارغة'); return; }
+ cart.forEach(c=>{
+ const prod = products.find(p=>p.id===c.id);
+ if(prod) prod.qty -= c.qty;
+ });
+ const total = cart.reduce((s,c)=>s+c.qty*c.price,0);
+ sales.push({
+ id: uid(),
+ date: new Date().toISOString(),
+ items: cart.map(c=>({name:c.name, qty:c.qty, price:c.price})),
+ total
+ });
+ await saveProducts();
+ await saveSales();
+ cart = [];
+ renderCart();
+ renderProducts();
+ renderPosList();
+ showToast('تمت عملية البيع بنجاح');
+});
+
+/* ---------------- Hardware Barcode Scanner (USB/Cable, keyboard-wedge) ---------------- */
+// أجهزة قراءة الباركود بالكبل تعمل كلوحة مفاتيح: تكتب الرقم بسرعة ثم ترسل Enter تلقائيًا.
+const barcodeInput = document.getElementById('manualBarcode');
+
+function focusBarcodeInput(){
+ if(document.getElementById('tab-pos').style.display !== 'none'){
+ barcodeInput.focus();
+ }
+}
+function processScannedCode(code){
+ code = code.trim();
+ if(!code) return;
+ const prod = products.find(p=>p.barcode===code);
+ if(prod){ addToCart(prod.id); showToast('تمت إضافة: '+prod.name); }
+ else{ showToast('لا يوجد منتج بهذا الباركود: '+code); }
+}
+
+barcodeInput.addEventListener('keydown', (e)=>{
+ if(e.key==='Enter'){
+ processScannedCode(e.target.value);
+ e.target.value='';
+ }
+});
+// إبقاء الحقل مركّزًا دائمًا أثناء العمل في نقطة البيع حتى يعمل القارئ فورًا دون نقر المستخدم
+barcodeInput.addEventListener('blur', ()=>{ setTimeout(focusBarcodeInput, 150); });
+
+// زر "تفعيل القراءة": يركّز الحقل صراحة ويعطي إشارة بصرية بأن النظام جاهز لاستقبال المسح
+document.getElementById('btnActivateScan').addEventListener('click', ()=>{
+ focusBarcodeInput();
+ const msg = document.getElementById('camMsg');
+ msg.textContent = 'جاهز — امسح الباركود الآن...';
+ msg.style.color = '#FFE9C7';
+ setTimeout(()=>{ msg.textContent='يمكنك أيضًا كتابة الباركود يدويًا ثم الضغط Enter'; msg.style.color=''; }, 3000);
+});
+
+/* زر المسح داخل نموذج إضافة/تعديل منتج: يملأ حقل الباركود مباشرة من جهاز القراءة بالكبل */
+let productScanMode = false;
+document.getElementById('btnScanForProduct').addEventListener('click', ()=>{
+ productScanMode = true;
+ const field = document.getElementById('prodBarcode');
+ const msg = document.getElementById('prodScanMsg');
+ field.value = '';
+ field.focus();
+ msg.textContent = 'جاهز — امسح الباركود الآن...';
+});
+document.getElementById('prodBarcode').addEventListener('keydown', (e)=>{
+ if(e.key==='Enter'){
+ e.preventDefault();
+ if(productScanMode){
+ document.getElementById('prodScanMsg').textContent = 'تم مسح الباركود بنجاح';
+ productScanMode = false;
+ }
+ }
+});
+
+// دعم إضافي: إذا فقد الحقل التركيز (مثلاً بعد نقر بالماوس) ووصل مسح سريع من القارئ،
+// نلتقط الكتابة السريعة من أي مكان في نقطة البيع ونعيد توجيهها لنفس المعالجة.
+let globalBuffer = '';
+let globalBufferTimer = null;
+document.addEventListener('keydown', (e)=>{
+ const posVisible = document.getElementById('tab-pos').style.display !== 'none';
+ if(!posVisible) return;
+ if(document.activeElement === barcodeInput) return; // الحقل نفسه يتكفل بذلك
+ if(document.getElementById('productModalBg').classList.contains('active')) return;
+ if(e.key === 'Enter'){
+ if(globalBuffer.length >= 3){ processScannedCode(globalBuffer); }
+ globalBuffer = '';
+ return;
+ }
+ if(e.key.length === 1){
+ globalBuffer += e.key;
+ clearTimeout(globalBufferTimer);
+ globalBufferTimer = setTimeout(()=>{ globalBuffer=''; }, 400);
+ }
+});
+
+/* ---------------- Reports ---------------- */
+function renderReports(){
+ const tbody = document.getElementById('salesTable');
+ const sorted = [...sales].sort((a,b)=> new Date(b.date)-new Date(a.date));
+ tbody.innerHTML = sorted.map(s=>{
+ const itemsStr = s.items.map(i=>`${escapeHtml(i.name)} ×${i.qty}`).join('، ');
+ const d = new Date(s.date);
+ return `<tr>
+ <td>${d.toLocaleDateString('ar-IQ')} ${d.toLocaleTimeString('ar-IQ',{hour:'2-digit',minute:'2-digit'})}</td>
+ <td>${itemsStr}</td>
+ <td class="num">${s.total.toLocaleString()} د.ع</td>
+ <td>
+ <button class="btn btn-outline btn-sm" onclick="openEditSale('${s.id}')">تعديل</button>
+ <button class="btn btn-danger btn-sm" onclick="deleteSale('${s.id}')">حذف</button>
+ </td>
+ </tr>`;
+ }).join('');
+ document.getElementById('salesEmpty').style.display = sorted.length? 'none':'block';
+
+ const today = new Date().toDateString();
+ const todayTotal = sales.filter(s=> new Date(s.date).toDateString()===today).reduce((sum,s)=>sum+s.total,0);
+ const allTotal = sales.reduce((sum,s)=>sum+s.total,0);
+ document.getElementById('statToday').textContent = todayTotal.toLocaleString()+' د.ع';
+ document.getElementById('statCount').textContent = sales.length;
+ document.getElementById('statAll').textContent = allTotal.toLocaleString()+' د.ع';
+}
+
+async function deleteSale(saleId){
+ const sale = sales.find(s=>s.id===saleId);
+ if(!sale) return;
+ const itemsStr = sale.items.map(i=>`${i.name} ×${i.qty}`).join('، ');
+ if(!confirm('حذف هذه العملية نهائيًا؟\n' + itemsStr + '\n\nسيتم إرجاع كمياتها للمخزون تلقائيًا. باقي بياناتك (المنتجات والمبيعات الأخرى) ما راح تتأثر.')) return;
+
+ // إرجاع الكميات المباعة إلى المخزون (مطابقة بالاسم)
+ sale.items.forEach(item=>{
+   const prod = products.find(p=>p.name===item.name);
+   if(prod){ prod.qty += item.qty; }
+ });
+
+ const d = new Date(sale.date);
+ activityLog = activityLog || [];
+ activityLog.unshift({id: uid(), description: `حذف عملية بيع (${itemsStr}) بتاريخ ${d.toLocaleDateString('ar-IQ')} — الإجمالي ${sale.total.toLocaleString()} د.ع`, date: new Date().toISOString()});
+ activityLog = activityLog.slice(0, 100);
+
+ sales = sales.filter(s=>s.id!==saleId);
+ await saveSales();
+ await saveProducts();
+ renderReports();
+ renderProducts();
+ renderPosList();
+ renderOwnerOverview();
+ renderOwnerSaleSearch();
+ renderOwnerActivityLog();
+ showToast('تم حذف العملية وإرجاع الكمية للمخزون');
+}
+
+let editingSaleId = null;
+function openEditSale(saleId){
+ const sale = sales.find(s=>s.id===saleId);
+ if(!sale) return;
+ editingSaleId = saleId;
+ const wrap = document.getElementById('editSaleItemsWrap');
+ wrap.innerHTML = sale.items.map((item,idx)=>`
+   <div class="field">
+     <label>${escapeHtml(item.name)} — السعر: ${item.price.toLocaleString()} د.ع للوحدة</label>
+     <input type="number" min="0" class="editSaleQty" data-idx="${idx}" value="${item.qty}">
+   </div>
+ `).join('');
+ document.getElementById('editSaleModalBg').classList.add('active');
+}
+function closeEditSaleModal(){
+ document.getElementById('editSaleModalBg').classList.remove('active');
+ editingSaleId = null;
+}
+async function saveEditedSale(){
+ const sale = sales.find(s=>s.id===editingSaleId);
+ if(!sale) return;
+ const oldItems = sale.items.map(i=>({...i}));
+ const inputs = document.querySelectorAll('.editSaleQty');
+
+ inputs.forEach(inp=>{
+   const idx = parseInt(inp.dataset.idx);
+   const newQty = Math.max(0, parseInt(inp.value)||0);
+   sale.items[idx].qty = newQty;
+ });
+ sale.items = sale.items.filter(i=>i.qty>0);
+ sale.total = sale.items.reduce((s,i)=>s+i.qty*i.price,0);
+
+ // تعديل المخزون: إرجاع الكميات القديمة أولاً، ثم خصم الكميات الجديدة
+ oldItems.forEach(old=>{
+   const prod = products.find(p=>p.name===old.name);
+   if(prod) prod.qty += old.qty;
+ });
+ sale.items.forEach(item=>{
+   const prod = products.find(p=>p.name===item.name);
+   if(prod) prod.qty -= item.qty;
+ });
+
+ const removedSale = !sale.items.length;
+ if(removedSale){ sales = sales.filter(s=>s.id!==editingSaleId); }
+
+ const d = new Date(sale.date);
+ activityLog = activityLog || [];
+ activityLog.unshift({id: uid(), description: `تعديل عملية بيع بتاريخ ${d.toLocaleDateString('ar-IQ')} — الإجمالي الجديد ${sale.total.toLocaleString()} د.ع`, date: new Date().toISOString()});
+ activityLog = activityLog.slice(0, 100);
+
+ await saveSales();
+ await saveProducts();
+ closeEditSaleModal();
+ renderReports();
+ renderProducts();
+ renderPosList();
+ renderOwnerOverview();
+ renderOwnerSaleSearch();
+ renderOwnerActivityLog();
+ showToast('تم تعديل العملية بنجاح');
+}
+
+function renderOwnerActivityLog(){
+ const wrap = document.getElementById('ownerActivityLog');
+ if(!wrap) return;
+ if(!activityLog || !activityLog.length){ wrap.innerHTML = '<div class="empty">لا يوجد أي سجل عمليات بعد</div>'; return; }
+ wrap.innerHTML = activityLog.map(a=>{
+   const d = new Date(a.date);
+   return `<div class="cart-item">
+     <div class="name">${escapeHtml(a.description)}<div style="font-size:11px;color:var(--muted);font-weight:400;">${d.toLocaleDateString('ar-IQ')} ${d.toLocaleTimeString('ar-IQ',{hour:'2-digit',minute:'2-digit'})}</div></div>
+   </div>`;
+ }).join('');
+}
+
+/* ---------------- Owner Panel ---------------- */
+let ownerUnlocked = false;
+
+function getOwnerPin(){ return localStorage.getItem('pharmacy:ownerPin'); }
+
+function showOwnerLockScreen(){
+  const hasPin = !!getOwnerPin();
+  document.getElementById('ownerPinInput').value = '';
+  document.getElementById('ownerPinConfirm').value = '';
+  document.getElementById('ownerLockMsg').textContent = '';
+  if(ownerUnlocked){
+    document.getElementById('ownerLockCard').style.display = 'none';
+    document.getElementById('ownerDashboard').style.display = 'block';
+    renderOwnerOverview();
+    renderOwnerBranchButtons();
+    renderOwnerSaleSearch();
+    renderOwnerActivityLog();
+    return;
+  }
+  document.getElementById('ownerLockCard').style.display = 'block';
+  document.getElementById('ownerDashboard').style.display = 'none';
+  if(hasPin){
+    document.getElementById('ownerLockTitle').textContent = 'دخول المالك';
+    document.getElementById('ownerLockDesc').textContent = 'أدخل رمز المالك للوصول إلى لوحة التحكم الكاملة';
+    document.getElementById('ownerPinConfirmWrap').style.display = 'none';
+    document.getElementById('btnOwnerUnlock').textContent = 'دخول';
+  }else{
+    document.getElementById('ownerLockTitle').textContent = 'إنشاء رمز المالك';
+    document.getElementById('ownerLockDesc').textContent = 'هذه أول مرة — أنشئ رمزًا خاصًا بك لحماية لوحة المالك';
+    document.getElementById('ownerPinConfirmWrap').style.display = 'block';
+    document.getElementById('btnOwnerUnlock').textContent = 'إنشاء الرمز والدخول';
+  }
+}
+
+document.getElementById('btnOwnerUnlock').addEventListener('click', ()=>{
+  const hasPin = getOwnerPin();
+  const entered = document.getElementById('ownerPinInput').value.trim();
+  const msg = document.getElementById('ownerLockMsg');
+  if(!entered || entered.length < 4){ msg.textContent = 'الرجاء إدخال رمز لا يقل عن 4 أرقام'; return; }
+
+  if(!hasPin){
+    const confirmVal = document.getElementById('ownerPinConfirm').value.trim();
+    if(entered !== confirmVal){ msg.textContent = 'الرمزان غير متطابقين'; return; }
+    localStorage.setItem('pharmacy:ownerPin', entered);
+    ownerUnlocked = true;
+    showToast('تم إنشاء رمز المالك بنجاح');
+    showOwnerLockScreen();
+    return;
+  }
+
+  if(entered === hasPin){
+    ownerUnlocked = true;
+    showOwnerLockScreen();
+  }else{
+    msg.textContent = 'رمز غير صحيح';
+  }
+});
+
+document.getElementById('btnOwnerLock').addEventListener('click', ()=>{
+  ownerUnlocked = false;
+  showOwnerLockScreen();
+});
+
+function renderOwnerBranchButtons(){
+  document.getElementById('btnBranch1').style.background = ACTIVE_BRANCH==='branch1' ? 'var(--primary)' : '#fff';
+  document.getElementById('btnBranch1').style.color = ACTIVE_BRANCH==='branch1' ? '#fff' : 'var(--ink)';
+  document.getElementById('btnBranch2').style.background = ACTIVE_BRANCH==='branch2' ? 'var(--primary)' : '#fff';
+  document.getElementById('btnBranch2').style.color = ACTIVE_BRANCH==='branch2' ? '#fff' : 'var(--ink)';
+}
+document.getElementById('btnBranch1').addEventListener('click', ()=> setActiveBranch('branch1'));
+document.getElementById('btnBranch2').addEventListener('click', ()=> setActiveBranch('branch2'));
+
+async function branchSalesTotal(branch, todayOnly){
+  let s = [];
+  try{
+    const doc = await branchDocRef(branch).get();
+    s = (doc.data() && doc.data().sales) || [];
+  }catch(e){ s = []; }
+  if(todayOnly){
+    const today = new Date().toDateString();
+    s = s.filter(x=> new Date(x.date).toDateString()===today);
+  }
+  return s.reduce((sum,x)=>sum+x.total,0);
+}
+
+async function renderOwnerOverview(){
+  document.getElementById('ownerB1Today').textContent = 'جاري التحميل...';
+  document.getElementById('ownerB2Today').textContent = 'جاري التحميل...';
+  document.getElementById('ownerAllTotal').textContent = 'جاري التحميل...';
+  const [b1Today, b2Today, b1All, b2All] = await Promise.all([
+    branchSalesTotal('branch1', true),
+    branchSalesTotal('branch2', true),
+    branchSalesTotal('branch1', false),
+    branchSalesTotal('branch2', false)
+  ]);
+  document.getElementById('ownerB1Today').textContent = b1Today.toLocaleString()+' د.ع';
+  document.getElementById('ownerB2Today').textContent = b2Today.toLocaleString()+' د.ع';
+  document.getElementById('ownerAllTotal').textContent = (b1All+b2All).toLocaleString()+' د.ع';
+}
+
+function renderOwnerSaleSearch(){
+  const term = (document.getElementById('ownerSaleSearch').value||'').trim().toLowerCase();
+  const wrap = document.getElementById('ownerSaleResults');
+  if(!term){ wrap.innerHTML = '<div class="empty">اكتب اسم منتج أو تاريخ للبحث عن عملية بيع</div>'; return; }
+
+  const matches = sales.filter(s=>{
+    const itemsMatch = s.items.some(i=> i.name.toLowerCase().includes(term));
+    const dateMatch = new Date(s.date).toLocaleDateString('ar-IQ').includes(term) || new Date(s.date).toLocaleDateString('en-GB').includes(term);
+    return itemsMatch || dateMatch;
+  }).sort((a,b)=> new Date(b.date)-new Date(a.date));
+
+  if(!matches.length){ wrap.innerHTML = '<div class="empty">لا توجد نتائج مطابقة</div>'; return; }
+
+  wrap.innerHTML = matches.map(s=>{
+    const itemsStr = s.items.map(i=>`${escapeHtml(i.name)} ×${i.qty}`).join('، ');
+    const d = new Date(s.date);
+    return `<div class="cart-item">
+      <div class="name">${itemsStr}<div style="font-size:11.5px;color:var(--muted);font-weight:400;">${d.toLocaleDateString('ar-IQ')} ${d.toLocaleTimeString('ar-IQ',{hour:'2-digit',minute:'2-digit'})}</div></div>
+      <div class="num" style="min-width:80px;">${s.total.toLocaleString()} د.ع</div>
+      <button class="btn btn-outline btn-sm" onclick="openEditSale('${s.id}')">تعديل</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteSale('${s.id}')">حذف</button>
+    </div>`;
+  }).join('');
+}
+document.getElementById('ownerSaleSearch').addEventListener('input', renderOwnerSaleSearch);
+
+document.getElementById('btnChangePin').addEventListener('click', ()=>{
+  const p1 = document.getElementById('newPinField').value.trim();
+  const p2 = document.getElementById('newPinConfirmField').value.trim();
+  if(!p1 || p1.length<4){ showToast('الرمز يجب ألا يقل عن 4 أرقام'); return; }
+  if(p1!==p2){ showToast('الرمزان غير متطابقين'); return; }
+  localStorage.setItem('pharmacy:ownerPin', p1);
+  document.getElementById('newPinField').value='';
+  document.getElementById('newPinConfirmField').value='';
+  showToast('تم تغيير رمز المالك بنجاح');
+});
+
+document.getElementById('btnResetBranch').addEventListener('click', async ()=>{
+  if(!confirm('سيتم حذف جميع سجلات مبيعات ' + BRANCH_LABEL[ACTIVE_BRANCH] + ' نهائيًا (بدون المساس بالمنتجات). هل أنت متأكد؟')) return;
+  sales = [];
+  await saveSales();
+  renderReports();
+  renderOwnerOverview();
+  showToast('تم تصفير مبيعات ' + BRANCH_LABEL[ACTIVE_BRANCH]);
+});
+
+document.getElementById('btnExportBackup').addEventListener('click', async ()=>{
+  showToast('جاري تجهيز النسخة الاحتياطية...');
+  try{
+    const [doc1, doc2] = await Promise.all([
+      branchDocRef('branch1').get(),
+      branchDocRef('branch2').get()
+    ]);
+    const backup = {
+      exportedAt: new Date().toISOString(),
+      branch1: {
+        products: (doc1.data() && doc1.data().products) || [],
+        sales: (doc1.data() && doc1.data().sales) || []
+      },
+      branch2: {
+        products: (doc2.data() && doc2.data().products) || [],
+        sales: (doc2.data() && doc2.data().sales) || []
+      }
+    };
+    const blob = new Blob([JSON.stringify(backup, null, 2)], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'نسخة-احتياطية-صيدلية-ازهار-فاهم-' + new Date().toISOString().slice(0,10) + '.json';
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('تم تصدير النسخة الاحتياطية');
+  }catch(e){
+    console.error(e);
+    showToast('تعذر تصدير النسخة الاحتياطية — تحقق من الإنترنت');
+  }
+});
+
+document.getElementById('btnImportBackup').addEventListener('click', ()=>{
+  document.getElementById('importFileInput').click();
+});
+document.getElementById('importFileInput').addEventListener('change', (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = async (ev)=>{
+    try{
+      const data = JSON.parse(ev.target.result);
+      if(!confirm('سيتم استبدال بيانات الفرعين الحاليين بمحتوى النسخة الاحتياطية. متابعة؟')) return;
+      await Promise.all([
+        branchDocRef('branch1').set({ products: data.branch1?.products || [], sales: data.branch1?.sales || [] }),
+        branchDocRef('branch2').set({ products: data.branch2?.products || [], sales: data.branch2?.sales || [] })
+      ]);
+      renderOwnerOverview();
+      showToast('تم استيراد النسخة الاحتياطية بنجاح');
+    }catch(err){
+      console.error(err);
+      showToast('ملف النسخة الاحتياطية غير صالح أو تعذر الاتصال بالإنترنت');
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+});
+
+/* ---------------- Init ---------------- */
+loadData();
+focusBarcodeInput();
+</script>
+</body>
+</html>
